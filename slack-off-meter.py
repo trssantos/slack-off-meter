@@ -10,7 +10,7 @@ import mediapipe as mp
 from ultralytics import YOLO
 
 class SlackOffMeter:
-    def __init__(self):
+    def __init__(self, alert_timeout=60):
         # Initialize YOLO model
         self.model = YOLO("yolov8n.pt")  # Use YOLOv8 nano model
         
@@ -30,7 +30,7 @@ class SlackOffMeter:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         
         # Parameters
-        self.alert_timeout = 15  # 1 minute threshold
+        self.alert_timeout = alert_timeout  # Use the provided timeout value
         self.last_focused_time = time.time()
         self.is_focused = True
         self.slack_count = 0
@@ -78,7 +78,8 @@ class SlackOffMeter:
         self.font_scale = 0.7
         self.line_thickness = 2
         
-        print("SlackOffMeter initialized! Press 'q' to quit, 'd' to toggle debug mode, '+'/'-' to adjust sensitivity.")
+        print(f"SlackOffMeter initialized with alert timeout of {self.alert_timeout} seconds!")
+        print("Press 'q' to quit, 'd' to toggle debug mode, '+'/'-' to adjust sensitivity.")
 
     def check_gaze_direction(self, face_landmarks, image_shape):
         """Determine if the person is looking at the screen based on face landmarks"""
@@ -344,7 +345,7 @@ class SlackOffMeter:
             print("\n=== Session Summary ===")
             print(f"Duration: {int(session_duration // 60)}m {int(session_duration % 60)}s")
             print(f"Focus time: {int(self.total_focused_time // 60)}m {int(self.total_focused_time % 60)}s")
-            print(f"Slack time: {int(self.total_slack_time // 15)}m {int(self.total_slack_time % 15)}s")
+            print(f"Slack time: {int(self.total_slack_time // 60)}m {int(self.total_slack_time % 60)}s")
             print(f"Focus rate: {focus_percentage:.1f}%")
             print(f"Slack alerts: {self.slack_count}")
             print(f"Session log saved to: {self.log_file}")
@@ -371,6 +372,34 @@ if __name__ == "__main__":
                 data = struct.pack('<h', value)
                 f.writeframesraw(data)
     
+    # Ask user for slack time threshold
+    default_timeout = 60
+    try:
+        print("\n=== Slack Off Meter Configuration ===")
+        user_input = input(f"Enter slack time threshold in seconds (default {default_timeout}s): ")
+        
+        # Use default if empty input
+        if user_input.strip():
+            alert_timeout = int(user_input)
+            print(f"Slack time threshold set to {alert_timeout} seconds")
+        else:
+            alert_timeout = default_timeout
+            print(f"Using default threshold of {alert_timeout} seconds")
+    except ValueError:
+        alert_timeout = default_timeout
+        print(f"Invalid input. Using default threshold of {alert_timeout} seconds")
+    
+    # Fun productivity quote
+    quotes = [
+        "The key is not to prioritize what's on your schedule, but to schedule your priorities.",
+        "Productivity is never an accident. It is always the result of a commitment to excellence.",
+        "Until we can manage time, we can manage nothing else.",
+        "The way to get started is to quit talking and begin doing.",
+        "Focus on being productive instead of busy.",
+        "Your focus determines your reality. May the productivity be with you."
+    ]
+    print(f"\n\"{np.random.choice(quotes)}\"\n")
+    
     print("Starting SlackOffMeter...")
-    meter = SlackOffMeter()
+    meter = SlackOffMeter(alert_timeout=alert_timeout)
     meter.run()
